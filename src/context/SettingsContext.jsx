@@ -21,13 +21,23 @@ export const SettingsProvider = ({ children }) => {
   const [pushNotifications, setPushNotifications] = useState(true);
   const [autoSuggestions, setAutoSuggestions] = useState(true);
 
-  //  Load settings from localStorage on mount
+  //  Load settings from localStorage on mount + auto dark mode at night
   useEffect(() => {
     const savedSettings = localStorage.getItem('userSettings');
     if (savedSettings) {
       try {
         const settings = JSON.parse(savedSettings);
-        setDarkMode(settings.darkMode || false);
+        
+        // Auto dark mode: Enable if between 6 PM and 6 AM, unless user explicitly set preference
+        const currentHour = new Date().getHours();
+        const isNightTime = currentHour >= 18 || currentHour < 6;
+        
+        // Use saved preference if exists, otherwise auto-enable at night
+        const shouldUseDarkMode = settings.darkMode !== undefined 
+          ? settings.darkMode 
+          : isNightTime;
+        
+        setDarkMode(shouldUseDarkMode);
         setTempUnit(settings.tempUnit || 'C');
         setLocationAccess(settings.locationAccess || false);
         setPushNotifications(settings.pushNotifications !== false); // Default true
@@ -35,6 +45,11 @@ export const SettingsProvider = ({ children }) => {
       } catch (error) {
         console.error('Failed to load settings:', error);
       }
+    } else {
+      // No saved settings: Auto-enable dark mode at night
+      const currentHour = new Date().getHours();
+      const isNightTime = currentHour >= 18 || currentHour < 6;
+      setDarkMode(isNightTime);
     }
   }, []);
 
@@ -63,7 +78,7 @@ export const SettingsProvider = ({ children }) => {
   const togglePushNotifications = () => setPushNotifications(!pushNotifications);
   const toggleAutoSuggestions = () => setAutoSuggestions(!autoSuggestions);
 
-  // 🌡️Temperature conversion helper
+  // Temperature conversion helper
   const convertTemp = (celsius) => {
     if (tempUnit === 'F') {
       return Math.round((celsius * 9/5) + 32);

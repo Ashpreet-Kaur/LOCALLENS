@@ -3,23 +3,47 @@ import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import SettingsContext from "../context/SettingsContext";
 import FavouritesContext from "../context/FavouritesContext";
+import LocationContext from "../context/LocationContext";
 
 const Profile = () => {
   const navigate = useNavigate();
-  // ✅ Get user from Context (single source of truth)
+  // Get user from Context (single source of truth)
   const { currentUser, logout, updateUser } = useContext(AuthContext);
   
-  // ⚙️ Get settings from SettingsContext (now dynamic and persistent!)
+  //  Get settings from SettingsContext
   const {
     darkMode, toggleDarkMode,
     tempUnit, setTempUnit,
-    locationAccess, toggleLocationAccess,
+    locationAccess, setLocationAccess,
     pushNotifications, togglePushNotifications,
     autoSuggestions, toggleAutoSuggestions
   } = useContext(SettingsContext);
 
-  // ❤️ Get favourites for activity stats
+  // Get location context for actually getting location
+  const { getLocation, clearLocation, location, address, isLoading } = useContext(LocationContext);
+
+  // Sync location access based on whether we have location data
+  useEffect(() => {
+    if (location?.latitude && location?.longitude) {
+      setLocationAccess(true);
+    }
+  }, [location, setLocationAccess]);
+
+  //  Get favourites for activity stats
   const { favourites } = useContext(FavouritesContext);
+
+  // Custom handler for location toggle
+  const handleLocationToggle = async () => {
+    if (!locationAccess) {
+      // User is enabling location - trigger location fetch
+      await getLocation();
+      setLocationAccess(true);
+    } else {
+      // User is disabling location - clear all location data
+      clearLocation();
+      setLocationAccess(false);
+    }
+  };
 
   // Edit mode toggle
   const [isEditing, setIsEditing] = useState(false);
@@ -27,7 +51,7 @@ const Profile = () => {
   // Editable user data
   const [user, setUser] = useState(currentUser || { name: "", email: "" });
 
-  // 🔄 Update user state when currentUser changes
+  // Update user state when currentUser changes
   useEffect(() => {
     if (currentUser) {
       setUser(currentUser);
@@ -47,7 +71,7 @@ const Profile = () => {
     setIsEditing(false);
   }
 
-  // 🎨 Toggle switch component (Bootstrap styled)
+  // Toggle switch component (Bootstrap styled)
   const Toggle = ({ isOn, onToggle }) => (
     <div
       onClick={onToggle}
@@ -64,7 +88,7 @@ const Profile = () => {
     </div>
   );
 
-  // 📊 Calculate activity stats
+  //  Calculate activity stats
   const totalFavourites = favourites?.length || 0;
   const uniqueCategories = new Set(
     (favourites || []).map(p => p?.properties?.category || p?.properties?.categories?.[0] || 'Other')
@@ -131,7 +155,7 @@ const Profile = () => {
               <h2 className="mb-1">{currentUser?.name || "User name"}</h2>
               <p className="text-muted">{currentUser?.email || "Email not Found"}</p>
               <p className="text-muted">
-                Location not available - Member since November 2025
+                {address?.city ? `📍 ${address.city}, ${address.country}` : 'Location not available'} - Member since November 2025
               </p>
               <div className="d-flex justify-content-center gap-3 mt-3 flex-wrap">
                 {currentUser && (
@@ -206,10 +230,10 @@ const Profile = () => {
                     <strong>Location Access</strong>
                     <br />
                     <small className="text-muted">
-                      {locationAccess ? '✅ Enabled' : '❌ Disabled'}
+                      {isLoading ? '⏳ Getting location...' : locationAccess && address?.city ? `✅ ${address.city}, ${address.country}` : locationAccess ? '✅ Enabled' : '❌ Disabled'}
                     </small>
                   </div>
-                  <Toggle isOn={locationAccess} onToggle={toggleLocationAccess} />
+                  <Toggle isOn={locationAccess} onToggle={handleLocationToggle} />
                 </div>
 
                 <div className="d-flex justify-content-between align-items-center mb-3">

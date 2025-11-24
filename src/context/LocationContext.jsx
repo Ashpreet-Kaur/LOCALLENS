@@ -11,68 +11,58 @@ export const LocationProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(false); // Track loading state
 
  
-  const getLocation = () => {
-    setIsLoading(true); //  Start loading
-    
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const lat = position.coords.latitude;
-        const long = position.coords.longitude;
-        setLocation({ latitude: lat, longitude: long });
-        setPrompt(false);
+ const getLocation = async () => {
+  setIsLoading(true);
 
-        //  API URLs
-        const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${long}&localityLanguage=en`;
-        
-        //  Get API key from environment variables (secure way)
-        // In Vite, use import.meta.env.VITE_* to access .env variables
-        const apiKey = import.meta.env.VITE_GEOAPIFY_API_KEY;
-        const exploreUrl = `https://api.geoapify.com/v2/places?categories=accommodation,activity,airport,commercial,catering,emergency,education,childcare,entertainment,healthcare,heritage,highway,leisure,man_made,natural,office,parking,pet,power,production,railway,rental,service,tourism,religion,camping,amenity,beach,adult,building,ski,sport,public_transport,memorial&filter=circle:${long},${lat},3000&apiKey=${apiKey}`;
+  try {
+    // 1Fetch IP-based location
+    const ipRes = await fetch("https://ipapi.co/json/");
+    const ipData = await ipRes.json();
 
-        // fetch address
-        (async () => {
-          try {
-            const response = await fetch(url);
-            const data = await response.json();
-            setAddress({
-              city: data.city || data.locality || '',
-              country: data.countryName || '',
-            });
-          } catch (err) {
-            console.error('reverse geocode error', err);
-          }
-        })();
+    const lat = ipData.latitude;
+    const long = ipData.longitude;
 
-        // fetch nearby places
-        (async () => {
-          try {
-            const response = await fetch(exploreUrl);
-            const exploreData = await response.json();
-            setExplore(exploreData.features || []);
-            console.log('explore data', exploreData);
-          } catch (error) {
-            console.error('explore fetch error', error);
-          } finally {
-            setIsLoading(false); // Done loading
-          }
-        })();
-      },
-      (error) => {
-        //  Handle location permission denied/error
-        console.error('geolocation error', error);
-        setIsLoading(false);
-        
-        // User-friendly error messages
-        if (error.code === 1) {
-          alert('Location access denied. Please enable location permissions in your browser settings.');
-        } else if (error.code === 2) {
-          alert('Location unavailable. Please check your device settings.');
-        } else if (error.code === 3) {
-          alert('Location request timed out. Please try again.');
-        }
+    setLocation({ latitude: lat, longitude: long });
+    setPrompt(false);
+
+    // Reverse geocoding (city & country)
+    const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${long}&localityLanguage=en`;
+
+    (async () => {
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
+        setAddress({
+          city: data.city || data.locality || '',
+          country: data.countryName || '',
+        });
+      } catch (err) {
+        console.error('reverse geocode error', err);
       }
-    );
-  };
+    })();
+
+    // 3 Nearby places (same logic you already have)
+    const apiKey = import.meta.env.VITE_GEOAPIFY_API_KEY;
+    const exploreUrl = `https://api.geoapify.com/v2/places?categories=accommodation,activity,airport,commercial,catering,emergency,education,childcare,entertainment,healthcare,heritage,highway,leisure,man_made,natural,office,parking,pet,power,production,railway,rental,service,tourism,religion,camping,amenity,beach,adult,building,ski,sport,public_transport,memorial&filter=circle:${long},${lat},3000&apiKey=${apiKey}`;
+
+    (async () => {
+      try {
+        const response = await fetch(exploreUrl);
+        const exploreData = await response.json();
+        setExplore(exploreData.features || []);
+      } catch (error) {
+        console.error('explore fetch error', error);
+      } finally {
+        setIsLoading(false);
+      }
+    })();
+
+  } catch (error) {
+    console.error("IP location fetch failed:", error);
+    alert("Could not fetch location. Check your internet connection.");
+    setIsLoading(false);
+  }
+};
 
   //  Function to handle "Maybe Later" button
   const dismissPrompt = () => {
@@ -81,10 +71,20 @@ export const LocationProvider = ({ children }) => {
     localStorage.setItem('locationPromptDismissed', 'true');
   };
 
+  //  Function to clear all location data (when user disables location)
+  const clearLocation = () => {
+    setLocation({});
+    setAddress({});
+    setExplore([]);
+    setPrompt(true);
+    localStorage.removeItem('locationPromptDismissed');
+  };
+
   return (
     <LocationContext.Provider
       value={{
         getLocation,
+        clearLocation, // Function to clear location data
         location,
         address,
         explore,

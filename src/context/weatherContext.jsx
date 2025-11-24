@@ -5,8 +5,8 @@ import LocationContext from './LocationContext';
 const weatherContext = createContext();
 
 export const WeatherProvider = ({ children }) => {
-  const [weather, setWeather] = useState(null); // 🐛 Start with null instead of {} to indicate no data yet
-  const [isLoading, setIsLoading] = useState(false); // 🔄 Track loading state
+  const [weather, setWeather] = useState(null); //  Start with null instead of {} to indicate no data yet
+  const [isLoading, setIsLoading] = useState(false); // Track loading state
   const { location } = useContext(LocationContext);
   
 

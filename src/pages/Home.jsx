@@ -13,13 +13,20 @@ const Home = () => {
   // Get user from Context (single source of truth)
   const { isLoggedIn, currentUser } = useContext(AuthContext);
   
-  // Get settings (for temperature unit)
-  const { convertTemp, tempUnit } = useContext(SettingsContext);
+  // Get settings (for temperature unit and location sync)
+  const { convertTemp, tempUnit, setLocationAccess } = useContext(SettingsContext);
   
   const locationCtx = useContext(LocationContext);
   const { address, location, prompt, getLocation, explore } = locationCtx;
   const dismissPrompt = locationCtx.dismissPrompt || (() => locationCtx.setPrompt(false));
   const locationLoading = locationCtx.isLoading || false;
+
+  // Sync location access state when location is obtained
+  useEffect(() => {
+    if (location?.latitude && location?.longitude) {
+      setLocationAccess(true);
+    }
+  }, [location, setLocationAccess]);
   
   const weatherCtx = useContext(weatherContext);
   const weather = weatherCtx?.weather;
@@ -64,7 +71,7 @@ const Home = () => {
             </div>
           )}
 
-          <div style={{ backgroundColor: "#f8f9fa", minHeight: "100vh" }}>
+          <div className="home-container" style={{ minHeight: "100vh" }}>
             <div
               className="container-fluid mt-4 py-5 px-5 text-white"
               style={{
@@ -100,7 +107,7 @@ const Home = () => {
                     }}
                   >
                     {weatherLoading ? (
-                      // 🔄 Loading state
+                      //  Loading state
                       <>
                         <div style={{ fontSize: "40px" }}>🔄</div>
                         <h4>Loading...</h4>
@@ -179,7 +186,7 @@ const Home = () => {
                   return (
                     
                     <div
-                      className="container d-flex flex-column border-1 rounded-3 bg-white shadow-sm me-2 p-3"
+                      className="container d-flex flex-column border-1 rounded-3 place-card shadow-sm me-2 p-3"
                       key={key}
                       style={{ maxWidth: 300 }}
                     >

@@ -25,7 +25,7 @@ export const FavouritesProvider = ({ children }) => {
     }
   }, []);
 
-  // 💾Auto-save to localStorage whenever state changes
+  // Auto-save to localStorage whenever state changes
   useEffect(() => {
     localStorage.setItem("favourites", JSON.stringify(favourites));
   }, [favourites]);

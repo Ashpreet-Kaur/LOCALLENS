@@ -1,14 +1,8 @@
 import React, { createContext, useEffect, useState } from 'react';
 
 /**
- * 🔐 AuthContext - Centralized Authentication State
+ *  AuthContext - Centralized Authentication State
  * 
- * DATA FLOW PATTERN (for beginners):
- * ✅ CORRECT: Component → Context → localStorage
- * ❌ WRONG: Component → localStorage directly
- * 
- * Why? This ensures all components see the same data in real-time.
- * If you update localStorage directly, other components won't know!
  * 
  * Usage:
  *   const { currentUser, login, logout, updateUser } = useContext(AuthContext);
